@@ -1,28 +1,46 @@
 import csv
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pickle
+
+start_time = time.time()
 
 # Set the Seaborn style
 sns.set(style="whitegrid")
 sns.set_style("ticks")
 sns.color_palette("Set1")
 
-# Reading the small data
-# FILE_PATH = "/home/haingo/Documents/python-stuff/ml-latest-small/ratings.csv"
-# small_data = np.loadtxt(FILE_PATH, delimiter=",", skiprows=1)[:, :3].astype(str)
+# File paths
+SMALL_UDATA_PATH = "/home/haingo/Documents/python-stuff/ml-100k/u.data"
+SMALL_PATH = "/home/haingo/Documents/python-stuff/ml-latest-small/ratings.csv"
+BIG_PATH = "/home/haingo/Documents/python-stuff/ml-25m/ratings.csv"
 
-UDATA_PATH = "/home/haingo/Documents/python-stuff/ml-100k/u.data"
 
-small_data = []
+def read_data(file_path, file_type):
+    """
+    Read data from a CSV file or a .data file and return the extracted data.
 
-with open(UDATA_PATH, "r") as data_file:
-    data_reader = csv.reader(data_file, delimiter="\t")
+    Parameters:
+        file_path (str): The path to the input file.
+        file_type (str): The type of file ('csv' or 'data').
 
-    for row in data_reader:
-        user_id, movie_id, rating, timestamp = row
-
-        small_data.append([user_id, movie_id, float(rating)])
+    Returns:
+        list: A list containing the extracted data.
+    """
+    if file_type == "csv":
+        data = np.loadtxt(file_path, delimiter=",", skiprows=1)[:, :3].astype(str)
+    elif file_type == "data":
+        data = []
+        with open(file_path, "r", encoding="utf-8") as data_file:
+            data_reader = csv.reader(data_file, delimiter="\t")
+            for row in data_reader:
+                system_user_id, system_movie_id, system_rating, _, _ = row
+                data.append([system_user_id, system_movie_id, float(system_rating)])
+    else:
+        raise ValueError("Unsupported file type. Use 'csv' or 'data'.")
+    return data
 
 
 def partitioning_data(data):
@@ -149,6 +167,10 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
     plt.show()
 
 
+# Read data
+# small_data = read_data(SMALL_UDATA_PATH, "data")
+small_data = read_data(SMALL_PATH, "csv")
+
 # Partitioning the data for training and testing
 (
     _,
@@ -161,12 +183,11 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
     data_by_movie_test,
 ) = partitioning_data(small_data)
 
-
 # Initialization
-LAMBDA, TAU, GAMMA = 0.001, 0.01, 0.5
+LAMBDA, TAU, GAMMA = 0.001, 0.1, 0.6
 
-LATENT_DIMS = 5
-NUM_ITERATIONS = 15
+LATENT_DIMS = 100
+NUM_ITERATIONS = 20
 
 sigma = np.sqrt(1 / np.sqrt(LATENT_DIMS))
 
@@ -181,108 +202,98 @@ movie_bias = np.zeros(NUM_MOVIES)
 loss_list_train, rmse_list_train, loss_list_test, rmse_list_test = [], [], [], []
 
 
-def update_bias_user(data_by_user):
+def update_bias_user(user_id, data_by_user):
     """
     data_by_user: sparse matrix by user
     Returns: user_bias
     """
-    for user_id in range(NUM_USERS):
-        bias = 0
-        movie_counter = 0
-        for movie_id, rating in data_by_user[user_id]:
-            bias += LAMBDA * (
-                rating
-                - (
-                    np.matmul(user_matrix[user_id].T, movie_matrix[movie_id])
-                    + movie_bias[movie_id]
-                )
+    bias = 0
+    movie_counter = 0
+    for movie_id, rating in data_by_user[user_id]:
+        bias += LAMBDA * (
+            rating
+            - (
+                np.matmul(user_matrix[user_id].T, movie_matrix[movie_id])
+                + movie_bias[movie_id]
             )
-            movie_counter += 1
-        bias = bias / (LAMBDA * movie_counter + GAMMA)
-        user_bias[user_id] = bias
-    return user_bias
+        )
+        movie_counter += 1
+    bias = bias / (LAMBDA * movie_counter + GAMMA)
+
+    return bias
 
 
-def update_bias_movie(data_by_movie):
+def update_bias_movie(movie_id, data_by_movie):
     """
     data_by_movie: sparse matrix by movie
     Returns: user_movie
     """
-    for movie_id in range(NUM_MOVIES):
-        bias = 0
-        user_counter = 0
-        for user_id, rating in data_by_movie[movie_id]:
-            bias += LAMBDA * (
-                rating
-                - (
-                    np.matmul(movie_matrix[user_id].T, user_matrix[user_id])
-                    + user_bias[user_id]
-                )
+    bias = 0
+    user_counter = 0
+    for user_id, rating in data_by_movie[movie_id]:
+        bias += LAMBDA * (
+            rating
+            - (
+                np.matmul(movie_matrix[movie_id].T, user_matrix[user_id])
+                + user_bias[user_id]
             )
-            user_counter += 1
-        bias = bias / (LAMBDA * user_counter + GAMMA)
-        movie_bias[movie_id] = bias
-    return movie_bias
+        )
+        user_counter += 1
+    bias = bias / (LAMBDA * user_counter + GAMMA)
+
+    return bias
 
 
-def update_matrix_user(data_by_user):
+def update_matrix_user(user_id, data_by_user):
     """
     data_by_user: sparse matrix by user
     Returns: user_matrix
     """
-    for user_id in range(NUM_USERS):
-        if not data_by_user[user_id]:
-            continue
+    if not data_by_user[user_id]:
+        return user_matrix[user_id]
 
-        right_summation = 0
-        left_summation = 0
-        for movie_id, rating in data_by_user[user_id]:
-            left_summation += LAMBDA * np.outer(
-                movie_matrix[movie_id], movie_matrix[movie_id]
-            )
-            right_summation += (
-                LAMBDA
-                * movie_matrix[movie_id]
-                * (rating - user_bias[user_id] - movie_bias[movie_id])
-            )
+    right_summation = 0
+    left_summation = 0
+    for movie_id, rating in data_by_user[user_id]:
+        left_summation += LAMBDA * np.outer(
+            movie_matrix[movie_id], movie_matrix[movie_id]
+        )
+        right_summation += (
+            LAMBDA
+            * movie_matrix[movie_id]
+            * (rating - user_bias[user_id] - movie_bias[movie_id])
+        )
 
-        left_summation += TAU * np.eye(LATENT_DIMS)
+    left_summation += TAU * np.eye(LATENT_DIMS)
 
-        left_term = np.linalg.inv(left_summation)
+    left_term = np.linalg.inv(left_summation)
 
-        user_matrix[user_id] = np.matmul(left_term, right_summation)
-
-    return user_matrix
+    return np.matmul(left_term, right_summation)
 
 
-def update_matrix_movie(data_by_movie):
+def update_matrix_movie(movie_id, data_by_movie):
     """
     data_by_movie: sparse matrix by movie
     Returns: movie_matrix
     """
-    for movie_id in range(NUM_MOVIES):
-        if not data_by_movie[movie_id]:
-            continue
+    if not data_by_movie[movie_id]:
+        return movie_matrix[movie_id]
 
-        right_summation = 0
-        left_summation = 0
-        for user_id, rating in data_by_movie[movie_id]:
-            left_summation += LAMBDA * np.outer(
-                user_matrix[user_id], user_matrix[user_id]
-            )
-            right_summation += (
-                LAMBDA
-                * user_matrix[user_id]
-                * (rating - movie_bias[movie_id] - user_bias[user_id])
-            )
+    right_summation = 0
+    left_summation = 0
+    for user_id, rating in data_by_movie[movie_id]:
+        left_summation += LAMBDA * np.outer(user_matrix[user_id], user_matrix[user_id])
+        right_summation += (
+            LAMBDA
+            * user_matrix[user_id]
+            * (rating - movie_bias[movie_id] - user_bias[user_id])
+        )
 
-        left_summation += TAU * np.eye(LATENT_DIMS)
+    left_summation += TAU * np.eye(LATENT_DIMS)
 
-        left_term = np.linalg.inv(left_summation)
+    left_term = np.linalg.inv(left_summation)
 
-        movie_matrix[movie_id] = np.matmul(left_term, right_summation)
-
-    return movie_matrix
+    return np.matmul(left_term, right_summation)
 
 
 def calculate_loss(data_by_user):
@@ -304,8 +315,8 @@ def calculate_loss(data_by_user):
             summation += prediction_error**2
 
     #  Regularization terms
-    user_bias_reg_term = 0.5 * GAMMA * np.sum(user_bias**2)
-    movie_bias_reg_term = 0.5 * GAMMA * np.sum(movie_bias**2)
+    user_bias_reg_term = 0.5 * GAMMA * np.dot(user_bias.T, user_bias)
+    movie_bias_reg_term = 0.5 * GAMMA * np.dot(movie_bias.T, movie_bias)
 
     user_matrix_reg_term = 0
     for user_id in range(NUM_USERS):
@@ -352,58 +363,46 @@ def calculate_rmse(data_by_user):
     return np.sqrt(mse)
 
 
-def plot_loss():
+def plot_metric(metric_type):
     """
-    Ploting the loss of the test and the training set
+    Plot either log-likelihood or RMSE based on the metric_type argument.
+
+    Args:
+        metric_type (str): Either 'log-likelihood' or 'rmse'.
     """
+    if metric_type == "log-likelihood":
+        metric_list_train = loss_list_train
+        metric_list_test = loss_list_test
+        metric_label = "Log-likelihood"
+        filename = "log-likelihood.pdf"
+    elif metric_type == "rmse":
+        metric_list_train = rmse_list_train
+        metric_list_test = rmse_list_test
+        metric_label = "RMSE"
+        filename = "rmse.pdf"
+    else:
+        print("Invalid metric_type. Use 'log-likelihood' or 'rmse'.")
+        return
+
     # Set the figure size
     plt.figure(figsize=(10, 10))  # Adjust the width and height as needed
-    # Plot training loss in medium violet red
-    plt.plot(range(NUM_ITERATIONS), loss_list_train, label="Training")
+    # Plot training metric in medium violet red
+    plt.plot(range(NUM_ITERATIONS), metric_list_train, label="Training")
 
-    # Plot test loss in blue
-    plt.plot(range(NUM_ITERATIONS), loss_list_test, label="Test")
+    # Plot test metric in blue
+    plt.plot(range(NUM_ITERATIONS), metric_list_test, label="Test")
 
     plt.xlabel("Iteration")
-    plt.ylabel("Loss")
-    plt.title("Loss")
+    plt.ylabel(metric_label)
+    plt.title(metric_label)
 
     # Show a legend to distinguish lines
     plt.legend()
 
     plt.grid(True, linestyle="--", alpha=0.3)
 
-    # Save the plot as 'loss.pdf'
-    plt.savefig("loss.pdf")
-
-    # Display the plot
-    plt.show()
-
-
-def plot_rmse():
-    """
-    Ploting the rmse of the test and the training set
-    """
-    # Set the figure size
-    plt.figure(figsize=(10, 10))  # Adjust the width and height as needed
-
-    # Plot training RMSE in medium violet red
-    plt.plot(range(NUM_ITERATIONS), rmse_list_train, label="Training")
-
-    # Plot test RMSE in blue
-    plt.plot(range(NUM_ITERATIONS), rmse_list_test, label="Test")
-
-    plt.xlabel("Iteration")
-    plt.ylabel("RMSE")
-    plt.title("Root Mean Square Error")
-
-    # Show a legend to distinguish lines
-    plt.legend()
-
-    plt.grid(True, linestyle="--", alpha=0.3)
-
-    # Save the plot as 'rmse.pdf'
-    plt.savefig("rmse.pdf")
+    # Save the plot
+    plt.savefig(filename)
 
     # Display the plot
     plt.show()
@@ -411,10 +410,27 @@ def plot_rmse():
 
 # Training
 for i in range(NUM_ITERATIONS):
-    movie_bias = update_bias_movie(data_by_movie_train)
-    movie_matrix = update_matrix_movie(data_by_movie_train)
-    user_bias = update_bias_user(data_by_user_train)
-    user_matrix = update_matrix_user(data_by_user_train)
+    movie_bias = np.array(
+        [
+            update_bias_movie(movie_id, data_by_movie_train)
+            for movie_id in range(NUM_MOVIES)
+        ]
+    )
+    movie_matrix = np.array(
+        [
+            update_matrix_movie(movie_id, data_by_movie_train)
+            for movie_id in range(NUM_MOVIES)
+        ]
+    )
+    user_bias = np.array(
+        [update_bias_user(user_id, data_by_user_train) for user_id in range(NUM_USERS)]
+    )
+    user_matrix = np.array(
+        [
+            update_matrix_user(user_id, data_by_user_train)
+            for user_id in range(NUM_USERS)
+        ]
+    )
 
     loss = calculate_loss(data_by_user_train)
     rmse = calculate_rmse(data_by_user_train)
@@ -435,6 +451,27 @@ for i in range(NUM_ITERATIONS):
 # plot_power_law(data_by_user_train, data_by_movie_train, "power_law_train")
 # plot_power_law(data_by_user_test, data_by_movie_test, "power_law_test")
 
-# Call the function with your data
-plot_loss()
-plot_rmse()
+end_time = time.time()
+execution_time = end_time - start_time
+print(f"Execution time: {execution_time:.5f} seconds")
+
+
+# Function to save an array to a file using Pickle
+def save_array_to_pickle(array, file_path: str):
+    """
+    array: array to save
+    file_path: where to save the array on the disk
+    """
+    try:
+        with open(file_path, "wb") as file:
+            pickle.dump(array, file)
+        print(f"Array saved to {file_path} successfully.")
+    except Exception as e:
+        print(f"Error while saving the array: {str(e)}")
+
+
+save_array_to_pickle(user_matrix, "user_matrix.pickle")
+save_array_to_pickle(movie_matrix, "movie_matrix.pickle")
+
+plot_metric("log-likelihood")
+plot_metric("rmse")
