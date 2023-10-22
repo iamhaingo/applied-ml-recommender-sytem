@@ -477,6 +477,8 @@ data_to_save = [
     (user_id_to_sys, "user_id_to_sys.pickle"),
     (movie_sys_to_id, "movie_sys_to_id.pickle"),
     (movie_id_to_sys, "movie_id_to_sys.pickle"),
+    (user_matrix, "user_matrix.pickle"),
+    (movie_matrix, "movie_matrix.pickle"),
 ]
 
 # Saving in pickle
