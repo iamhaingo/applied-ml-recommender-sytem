@@ -18,16 +18,14 @@ SMALL_PATH = "/home/haingo/Documents/python-stuff/ml-latest-small/ratings.csv"
 BIG_PATH = "/home/haingo/Documents/python-stuff/ml-25m/ratings.csv"
 
 
-def read_data(file_path, file_type):
+def read_data(file_path: str, file_type: str):
     """
     Read data from a CSV file or a .data file and return the extracted data.
 
-    Parameters:
-        file_path (str): The path to the input file.
-        file_type (str): The type of file ('csv' or 'data').
+    file_path (str): The path to the input file.
+    file_type (str): The type of file ('csv' or 'data').
 
-    Returns:
-        list: A list containing the extracted data.
+    Returns: A list containing the extracted data.
     """
     if file_type == "csv":
         data = np.loadtxt(file_path, delimiter=",", skiprows=1)[:, :3].astype(str)
@@ -36,7 +34,7 @@ def read_data(file_path, file_type):
         with open(file_path, "r", encoding="utf-8") as data_file:
             data_reader = csv.reader(data_file, delimiter="\t")
             for row in data_reader:
-                system_user_id, system_movie_id, system_rating, _, _ = row
+                system_user_id, system_movie_id, system_rating, _ = row
                 data.append([system_user_id, system_movie_id, float(system_rating)])
     else:
         raise ValueError("Unsupported file type. Use 'csv' or 'data'.")
@@ -46,6 +44,8 @@ def read_data(file_path, file_type):
 def partitioning_data(data):
     """
     Parsing the csv data and partitioning it into training and test set
+
+    data: the rating data in rating csv
     """
     # Shuffling and splitting point
     np.random.shuffle(data)
@@ -168,15 +168,16 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
 
 
 # Read data
-# small_data = read_data(SMALL_UDATA_PATH, "data")
-small_data = read_data(SMALL_PATH, "csv")
+small_data = read_data(SMALL_UDATA_PATH, "data")
+# small_data = read_data(SMALL_PATH, "csv")
+# small_data = read_data(BIG_PATH, "csv")
 
 # Partitioning the data for training and testing
 (
-    _,
-    _,
-    _,
-    _,
+    user_sys_to_id,
+    user_id_to_sys,
+    movie_sys_to_id,
+    movie_id_to_sys,
     data_by_user_train,
     data_by_movie_train,
     data_by_user_test,
@@ -184,9 +185,9 @@ small_data = read_data(SMALL_PATH, "csv")
 ) = partitioning_data(small_data)
 
 # Initialization
-LAMBDA, TAU, GAMMA = 0.001, 0.1, 0.6
+LAMBDA, TAU, GAMMA = 0.001, 0.01, 0.6
 
-LATENT_DIMS = 100
+LATENT_DIMS = 2
 NUM_ITERATIONS = 20
 
 sigma = np.sqrt(1 / np.sqrt(LATENT_DIMS))
@@ -363,12 +364,11 @@ def calculate_rmse(data_by_user):
     return np.sqrt(mse)
 
 
-def plot_metric(metric_type):
+def plot_metric(metric_type: str):
     """
     Plot either log-likelihood or RMSE based on the metric_type argument.
 
-    Args:
-        metric_type (str): Either 'log-likelihood' or 'rmse'.
+    metric_type (str): Either 'log-likelihood' or 'rmse'.
     """
     if metric_type == "log-likelihood":
         metric_list_train = loss_list_train
@@ -470,8 +470,19 @@ def save_array_to_pickle(array, file_path: str):
         print(f"Error while saving the array: {str(e)}")
 
 
-save_array_to_pickle(user_matrix, "user_matrix.pickle")
-save_array_to_pickle(movie_matrix, "movie_matrix.pickle")
+data_to_save = [
+    (data_by_movie_train, "data_by_movie.pickle"),
+    (data_by_user_train, "data_by_user.pickle"),
+    (user_sys_to_id, "user_sys_to_id.pickle"),
+    (user_id_to_sys, "user_id_to_sys.pickle"),
+    (movie_sys_to_id, "movie_sys_to_id.pickle"),
+    (movie_id_to_sys, "movie_id_to_sys.pickle"),
+]
+
+# Saving in pickle
+for data, filename in data_to_save:
+    save_array_to_pickle(data, filename)
+
 
 plot_metric("log-likelihood")
 plot_metric("rmse")
