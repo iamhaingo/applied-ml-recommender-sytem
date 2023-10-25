@@ -1,7 +1,13 @@
 import pickle
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 import csv
+
+# Set the Seaborn style
+sns.set(style="whitegrid", font_scale=1.1)
+sns.set_style("ticks")
+sns.color_palette("Set1")
 
 
 # Function to load an array from a Pickle file
@@ -12,7 +18,7 @@ def load_array_from_pickle(file_path: str):
     try:
         with open(file_path, "rb") as file:
             loaded_array = pickle.load(file)
-        # print(f"Array loaded from {file_path} successfully.")
+        print(f"Array loaded from {file_path} successfully.")
         return loaded_array
     except Exception as e:
         print(f"Error while loading the array: {str(e)}")
@@ -51,7 +57,8 @@ loaded_arrays = [load_array_from_pickle(file_path) for file_path in file_paths]
     movie_bias,
 ) = loaded_arrays
 
-path_movie = "./ml-latest-small/movies.csv"
+# path_movie = "./ml-latest-small/movies.csv"
+path_movie = "./ml-25m/movies.csv"
 
 dict_movies = {}
 
@@ -59,31 +66,19 @@ with open(path_movie, "r") as data_file:
     data_reader = csv.reader(data_file, delimiter=",")
     next(data_reader, None)
     for row in data_reader:
-        movie_id, title, genre = row
-        dict_movies[int(movie_id)] = title
+        system_id, title, genre = row
+        dict_movies[int(system_id)] = title
 
 
-def movie_search_grep(dict_movies, search_term):
-    results = {}
+def movie_search_grep(search_term):
+    results = []
     for sys_id, movie_name in dict_movies.items():
         if search_term.lower() in movie_name.lower():
-            results[sys_id] = movie_name
-    print("Sys_id, movie")
-    for sys_id, movie in results.items():
-        print(sys_id, movie)
+            results.append((sys_id, movie_name))
+    return results
 
 
 def predict(movie_id):
-    """
-    Returns a list of tuple (movie_id,score) of top 10 recommendations for the choosen movie
-
-    """
-
-    print(
-        movie_id,
-        movie_id_to_sys[movie_id],
-        dict_movies[int(float(movie_id_to_sys[movie_id]))],
-    )
     # Create a dummy user
     dummy_user_vector = movie_matrix[movie_id].copy()
 
@@ -96,24 +91,74 @@ def predict(movie_id):
     # Sort the recommender from the worse to the best
     recommender = sorted(recommender, key=lambda x: x[1])
 
-    # Return the top 10 recommendations
-    top_10 = recommender[-10:]
+    # Return the top x recommendations
+    topx = recommender[-10:]
 
-    recommended_movies = [(movie_id, score) for movie_id, score in top_10]
-    for rec_movie_id, score in recommended_movies:
-        rec_movie_name = dict_movies[int(float(movie_id_to_sys[rec_movie_id]))]
-        print(rec_movie_name)
+    recommended_movies = [
+        (rec_movie_id, dict_movies[movie_id_to_sys[rec_movie_id]])
+        for rec_movie_id, score in topx
+    ]
+    rec_id, rec_name = zip(*recommended_movies)
+
+    return rec_id, rec_name
 
 
-movie_search_grep(dict_movies, search_term="")
-# print("\n")
-# print(movie_sys_to_id)
-# print(int(float(movie_id_to_sys[1])))
+def extract_coordinates(rec_ids):
+    x = []
+    y = []
+    for i in rec_ids:
+        x.append(movie_matrix[i][0])
+        y.append(movie_matrix[i][1])
+    return x, y
 
-# predict(1)
-# print("\n")
 
-# print(movie_sys_to_id["148671.0"])
+def plot_recommendations(movie_ids_and_colors):
+    plt.figure(
+        figsize=(12, 8),
+    )  # Increase the figure size
 
-# print("\n")
-# predict(7602)
+    for movie_id, color in movie_ids_and_colors:
+        top = predict(movie_sys_to_id[movie_id])
+        rec_id, rec_name = top
+        x_test, y_test = extract_coordinates(rec_id)
+
+        # Assign a unique color to each set of recommendations
+        plt.scatter(
+            x_test,
+            y_test,
+            marker="o",
+            label=f"Recommendations for Movie {dict_movies[movie_id]}",
+            c=[color],
+        )
+
+        # Annotate each point with the movie title with some offset to prevent overlap
+        text_offset = 0.04  # Adjust this value as needed
+        for i, txt in enumerate(rec_name):
+            plt.annotate(
+                txt, (x_test[i] - text_offset, y_test[i] + text_offset), fontsize=8
+            )
+
+    plt.xlabel("X-coordinate")
+    plt.ylabel("Y-coordinate")
+    plt.title("Movie Recommendations")
+    plt.legend()
+    plt.grid(True)
+
+    # Adjust the plot margins to ensure text is not cut off
+    plt.subplots_adjust(left=0.08, right=0.95, top=0.92, bottom=0.08)
+
+    # Save the plot to a PDF file
+    plt.savefig("recommendation.pdf", format="pdf")
+
+    plt.show()
+
+
+# You can call this function with a list of movie IDs and corresponding colors.
+movie_ids_and_colors = [
+    # (6350, "b"),
+    # (121231, "g"),
+    # (364, "r"),
+    (89745, "b"),
+]  # Replace with movie IDs and colors as needed.
+
+plot_recommendations(movie_ids_and_colors)
