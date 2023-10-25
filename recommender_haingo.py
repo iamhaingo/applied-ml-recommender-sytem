@@ -43,6 +43,24 @@ def read_data(file_path: str, file_type: str):
     return data
 
 
+def plot_hist(data, filename=None):
+    ratings = [entry[2] for entry in data]
+
+    # Create a histogram
+    plt.figure(figsize=(8, 6))
+    plt.hist(ratings, bins=10, edgecolor="black", alpha=0.7)
+
+    # Customize tick labels
+    plt.xticks(range(1, 5))  # Assuming ratings are in the range of 1 to 10
+    plt.xlabel("Ratings")
+    plt.ylabel("Count")
+
+    # Show the plot or save it to a file
+    if filename is not None:
+        plt.savefig(f"{filename}.pdf")
+    plt.show()
+
+
 def partitioning_data(data):
     """
     Parsing the csv data and partitioning it into training and test set
@@ -171,8 +189,11 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
 
 # Read data
 # small_data = read_data(SMALL_UDATA_PATH, "data")
-# small_data = read_data(SMALL_PATH, "csv")
-small_data = read_data(BIG_PATH, "csv")
+small_data = read_data(SMALL_PATH, "csv")
+# small_data = read_data(BIG_PATH, "csv")
+
+# Histogram
+plot_hist(small_data, "histogram")
 
 # Partitioning the data for training and testing
 (
@@ -471,8 +492,8 @@ for i in range(NUM_ITERATIONS):
 
 
 # Plot and save the power law figure.
-# plot_power_law(data_by_user_train, data_by_movie_train, "power_law_train")
-# plot_power_law(data_by_user_test, data_by_movie_test, "power_law_test")
+plot_power_law(data_by_user_train, data_by_movie_train, "power_law_train")
+plot_power_law(data_by_user_test, data_by_movie_test, "power_law_test")
 
 end_time = time.time()
 execution_time = end_time - start_time

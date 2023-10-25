@@ -92,7 +92,7 @@ def predict(movie_id):
     recommender = sorted(recommender, key=lambda x: x[1])
 
     # Return the top x recommendations
-    topx = recommender[-10:]
+    topx = recommender[-5:]
 
     recommended_movies = [
         (rec_movie_id, dict_movies[movie_id_to_sys[rec_movie_id]])
@@ -157,7 +157,7 @@ def plot_recommendations(movie_ids_and_colors):
 movie_ids_and_colors = [
     # (6350, "b"),
     # (121231, "g"),
-    # (364, "r"),
+    (364, "r"),
     (89745, "b"),
 ]  # Replace with movie IDs and colors as needed.
 
