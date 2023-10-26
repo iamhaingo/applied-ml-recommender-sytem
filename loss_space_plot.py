@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-tau = 1
-lambd = 0.5
-r = 2
+tau = 0.01
+lambd = 0.001
+r = 5
 
 # Make data.
 X = np.arange(-5, 5, 0.25)

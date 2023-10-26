@@ -11,6 +11,7 @@ start_time = time.time()
 sns.set(style="whitegrid")
 sns.set_style("ticks")
 sns.color_palette("Set1")
+sns.set_context("talk")
 
 # File paths
 SMALL_UDATA_PATH = "/home/haingo/Documents/python-stuff/ml-100k/u.data"
@@ -44,21 +45,23 @@ def read_data(file_path: str, file_type: str):
 
 
 def plot_hist(data, filename=None):
+    # Extract ratings from the data
     ratings = [entry[2] for entry in data]
 
     # Create a histogram
     plt.figure(figsize=(8, 6))
-    plt.hist(ratings, bins=10, edgecolor="black", alpha=0.7)
+    plt.hist(ratings, bins=10, range=(1, 6), edgecolor="black", alpha=0.7)
 
-    # Customize tick labels
-    plt.xticks(range(1, 5))  # Assuming ratings are in the range of 1 to 10
+    # Customize the plot
+    plt.xticks(range(1, 6))  # Assuming ratings range from 1 to 5
     plt.xlabel("Ratings")
     plt.ylabel("Count")
 
     # Show the plot or save it to a file
     if filename is not None:
         plt.savefig(f"{filename}.pdf")
-    plt.show()
+    else:
+        plt.show()
 
 
 def partitioning_data(data):
@@ -141,7 +144,7 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
     num_rating_movie = [len(a) for a in data_by_movie]
 
     # Create a scatter plot
-    _, ax = plt.subplots(figsize=(10, 10))
+    _, ax = plt.subplots(figsize=(5, 5))
     ax.scatter(
         num_rating_user,
         [num_rating_user.count(i) for i in num_rating_user],
@@ -189,8 +192,8 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
 
 # Read data
 # small_data = read_data(SMALL_UDATA_PATH, "data")
-small_data = read_data(SMALL_PATH, "csv")
-# small_data = read_data(BIG_PATH, "csv")
+# small_data = read_data(SMALL_PATH, "csv")
+small_data = read_data(BIG_PATH, "csv")
 
 # Histogram
 plot_hist(small_data, "histogram")
@@ -208,7 +211,7 @@ plot_hist(small_data, "histogram")
 ) = partitioning_data(small_data)
 
 # Initialization
-LAMBDA, TAU, GAMMA = 0.005, 0.05, 0.4
+LAMBDA, TAU, GAMMA = 0.001, 0.01, 0.6
 
 LATENT_DIMS = 15
 NUM_ITERATIONS = 10

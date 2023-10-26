@@ -1,5 +1,4 @@
 import pickle
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import csv
@@ -8,6 +7,7 @@ import csv
 sns.set(style="whitegrid", font_scale=1.1)
 sns.set_style("ticks")
 sns.color_palette("Set1")
+sns.set_context("talk")
 
 
 # Function to load an array from a Pickle file
@@ -92,7 +92,7 @@ def predict(movie_id):
     recommender = sorted(recommender, key=lambda x: x[1])
 
     # Return the top x recommendations
-    topx = recommender[-5:]
+    topx = recommender[-3:]
 
     recommended_movies = [
         (rec_movie_id, dict_movies[movie_id_to_sys[rec_movie_id]])
@@ -108,13 +108,13 @@ def extract_coordinates(rec_ids):
     y = []
     for i in rec_ids:
         x.append(movie_matrix[i][0])
-        y.append(movie_matrix[i][1])
+        y.append(movie_matrix[i][4])
     return x, y
 
 
 def plot_recommendations(movie_ids_and_colors):
     plt.figure(
-        figsize=(12, 8),
+        figsize=(6, 6),
     )  # Increase the figure size
 
     for movie_id, color in movie_ids_and_colors:
@@ -155,10 +155,10 @@ def plot_recommendations(movie_ids_and_colors):
 
 # You can call this function with a list of movie IDs and corresponding colors.
 movie_ids_and_colors = [
-    # (6350, "b"),
+    (6350, "b"),
     # (121231, "g"),
     (364, "r"),
-    (89745, "b"),
+    (4246, "k"),
 ]  # Replace with movie IDs and colors as needed.
 
 plot_recommendations(movie_ids_and_colors)
