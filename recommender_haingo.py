@@ -191,9 +191,9 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
 
 
 # Read data
-small_data = read_data(SMALL_UDATA_PATH, "data")
+# small_data = read_data(SMALL_UDATA_PATH, "data")
 # small_data = read_data(SMALL_PATH, "csv")
-# small_data = read_data(BIG_PATH, "csv")
+small_data = read_data(BIG_PATH, "csv")
 
 # Histogram
 plot_hist(small_data, "histogram")
@@ -213,7 +213,7 @@ plot_hist(small_data, "histogram")
 # Initialization
 LAMBDA, TAU, GAMMA = 0.001, 0.01, 0.5
 
-LATENT_DIMS = 15
+LATENT_DIMS = 30
 NUM_ITERATIONS = 10
 
 sigma = np.sqrt(1 / np.sqrt(LATENT_DIMS))

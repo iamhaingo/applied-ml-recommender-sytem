@@ -25,7 +25,6 @@ def load_array_from_pickle(file_path: str):
         return None
 
 
-# List of file paths
 # List of file paths for your pickles
 file_paths = [
     "./pickles/data_by_movie.pickle",
@@ -55,6 +54,10 @@ loaded_arrays = [load_array_from_pickle(file_path) for file_path in file_paths]
     movie_matrix,
     user_bias,
     movie_bias,
+    loss_list_train,
+    loss_list_test,
+    rmse_list_train,
+    rmse_list_test,
 ) = loaded_arrays
 
 # path_movie = "./ml-latest-small/movies.csv"
@@ -107,8 +110,8 @@ def extract_coordinates(rec_ids):
     x = []
     y = []
     for i in rec_ids:
-        x.append(movie_matrix[i][1])
-        y.append(movie_matrix[i][9])
+        x.append(movie_matrix[i][0])
+        y.append(movie_matrix[i][1])
     return x, y
 
 
@@ -159,7 +162,6 @@ movie_ids_and_colors = [
     (8957, "r"),
     (596, "g"),
     (4993, "k"),
-    # (89745, "y"),
 ]  # Replace with movie IDs and colors as needed.
 
 plot_recommendations(movie_ids_and_colors)
