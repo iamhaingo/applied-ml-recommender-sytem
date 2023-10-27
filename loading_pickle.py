@@ -92,7 +92,7 @@ def predict(movie_id):
     recommender = sorted(recommender, key=lambda x: x[1])
 
     # Return the top x recommendations
-    topx = recommender[-3:]
+    topx = recommender[-5:]
 
     recommended_movies = [
         (rec_movie_id, dict_movies[movie_id_to_sys[rec_movie_id]])
@@ -107,14 +107,14 @@ def extract_coordinates(rec_ids):
     x = []
     y = []
     for i in rec_ids:
-        x.append(movie_matrix[i][0])
-        y.append(movie_matrix[i][4])
+        x.append(movie_matrix[i][1])
+        y.append(movie_matrix[i][9])
     return x, y
 
 
 def plot_recommendations(movie_ids_and_colors):
     plt.figure(
-        figsize=(6, 6),
+        figsize=(18, 12),
     )  # Increase the figure size
 
     for movie_id, color in movie_ids_and_colors:
@@ -135,11 +135,11 @@ def plot_recommendations(movie_ids_and_colors):
         text_offset = 0.04  # Adjust this value as needed
         for i, txt in enumerate(rec_name):
             plt.annotate(
-                txt, (x_test[i] - text_offset, y_test[i] + text_offset), fontsize=8
+                txt, (x_test[i] - text_offset, y_test[i] + text_offset), fontsize=14
             )
 
-    plt.xlabel("X-coordinate")
-    plt.ylabel("Y-coordinate")
+    plt.xlabel("Factor vector 1")
+    plt.ylabel("Factor vector 2")
     plt.title("Movie Recommendations")
     plt.legend()
     plt.grid(True)
@@ -155,10 +155,11 @@ def plot_recommendations(movie_ids_and_colors):
 
 # You can call this function with a list of movie IDs and corresponding colors.
 movie_ids_and_colors = [
-    (6350, "b"),
-    # (121231, "g"),
-    (364, "r"),
-    (4246, "k"),
+    (5971, "b"),
+    (8957, "r"),
+    (596, "g"),
+    (4993, "k"),
+    # (89745, "y"),
 ]  # Replace with movie IDs and colors as needed.
 
 plot_recommendations(movie_ids_and_colors)

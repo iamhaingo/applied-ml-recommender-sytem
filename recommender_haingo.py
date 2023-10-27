@@ -169,11 +169,11 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
     ax.grid(True, linestyle="--", alpha=0.5)
 
     # Add a title
-    ax.set_title("Distribution of Ratings per User and Movie", fontsize=16)
+    ax.set_title("Power law")
 
     # Label x and y axes
-    ax.set_xlabel("Number of Ratings", fontsize=14)
-    ax.set_ylabel("Frequency", fontsize=14)
+    ax.set_xlabel("Degree")
+    ax.set_ylabel("Frequency")
 
     # Customize tick labels
     ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: int(x)))
@@ -191,9 +191,9 @@ def plot_power_law(data_by_user, data_by_movie, filename=None):
 
 
 # Read data
-# small_data = read_data(SMALL_UDATA_PATH, "data")
+small_data = read_data(SMALL_UDATA_PATH, "data")
 # small_data = read_data(SMALL_PATH, "csv")
-small_data = read_data(BIG_PATH, "csv")
+# small_data = read_data(BIG_PATH, "csv")
 
 # Histogram
 plot_hist(small_data, "histogram")
@@ -211,7 +211,7 @@ plot_hist(small_data, "histogram")
 ) = partitioning_data(small_data)
 
 # Initialization
-LAMBDA, TAU, GAMMA = 0.001, 0.01, 0.6
+LAMBDA, TAU, GAMMA = 0.001, 0.01, 0.5
 
 LATENT_DIMS = 15
 NUM_ITERATIONS = 10
@@ -524,10 +524,16 @@ data_to_save = [
     (user_id_to_sys, "./pickles/user_id_to_sys.pickle"),
     (movie_sys_to_id, "./pickles/movie_sys_to_id.pickle"),
     (movie_id_to_sys, "./pickles/movie_id_to_sys.pickle"),
+    # U, V and the biases
     (user_matrix, "./pickles/user_matrix.pickle"),
     (movie_matrix, "./pickles/movie_matrix.pickle"),
     (user_bias, "./pickles/user_bias.pickle"),
     (movie_bias, "./pickles/movie_bias.pickle"),
+    # loss and rmse
+    (loss_list_train, "./pickles/loss_list_train.pickle"),
+    (loss_list_test, "./pickles/loss_list_test.pickle"),
+    (rmse_list_train, "./pickles/rmse_list_train.pickle"),
+    (rmse_list_test, "./pickles/rmse_list_test.pickle"),
 ]
 
 
@@ -538,4 +544,3 @@ for data, filename in data_to_save:
 
 plot_metric("log-likelihood")
 plot_metric("rmse")
-plot_embedding("Embedding.pdf")
