@@ -1,4 +1,4 @@
-# Recommender. System with Matrix Factorization
+# Recommender System with Matrix Factorization
 
 ## Overview
 
